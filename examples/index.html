@@ -1,0 +1,271 @@
+
+<html>
+<head>
+   <meta charset="UTF-8"> 
+   <link rel="stylesheet" type="text/css" href="example.css">
+</head>
+<body>
+
+   Thing id: <input type="text" id="thing-id"><br>
+   <button id="connect-bt" onclick="connectIoT()">Login/Connect/reconnect</button>
+   <hr>
+   JSON Shadow: <textarea id="thing-shadow">
+      {"state":{"desired":{"red":"black"}}}
+   </textarea><br>
+   <button onclick="updateThingShadow()">Update shadow</button>
+   <hr>
+   <div id="status"></div>
+
+   <script src="aws-iot-device-sdk-js-react-native.js?t=b"></script>
+   <script>
+
+       //
+       // Initialize our configuration.
+       //
+       var config = {
+           region: 'us-west-2',
+           host: 'a3ixo84r98uo7r.iot.us-west-2.amazonaws.com',
+           poolData: {
+               UserPoolId: 'us-west-2_SLC7ee3jy',
+               ClientId: '6q6m87f49vj4oha71u8qgotdj9'
+           },
+           authenticationData: {
+               Username: 'j@a.com',
+               Password: '12345678',
+           },
+           IdentityPoolId: 'us-west-2:ddf64676-329d-4fcb-ab70-6bfab5526a6b',
+           Login: 'cognito-idp.us-west-2.amazonaws.com/us-west-2_SLC7ee3jy'
+       };
+
+       AWS.config.region = config.region;
+
+       var shadows;
+       var thingId;
+
+       //
+       // Keep track of whether or not we've registered the shadows used by this
+       // example.
+       //
+       var shadowsRegistered = false;
+
+
+       //
+       // Client token value returned from thingShadows.update() operation
+       //
+       var clientTokenUpdate;
+
+       // aws iot attach-principal-policy --policy-name honesty --principal us-west-2:2205456b-c417-455b-b9e3-a933ad3f1ef6
+       // aws iot detach-principal-policy --policy-name honesty --principal us-west-2:2205456b-c417-455b-b9e3-a933ad3f1ef6
+       // configure the policy based on the principal id
+
+       // current issues
+       // 1. user id is not matching with cognito
+       // 2. attach pricipal policy
+       // 3. create a shadow by default
+       // 4. publish changes to shadow
+       // 5. MQTT component side
+
+       function updateThingShadow() {
+           var shadow = document.getElementById('thing-shadow').value;
+            // Once registration is complete, update the Thing Shadow named
+            // 'RGBLedLamp' with the latest device state and save the clientToken
+            // so that we can correlate it with status or timeout events.
+            //
+            // Thing shadow state
+            //
+           clientTokenUpdate = shadows.update(thingId, JSON.parse( shadow )  );
+            //
+            // The update method returns a clientToken; if non-null, this value will
+            // be sent in a 'status' event when the operation completes, allowing you
+            // to know whether or not the update was successful.  If the update method
+            // returns null, it's because another operation is currently in progress and
+            // you'll need to wait until it completes (or times out) before updating the
+            // shadow.
+            //
+           if (clientTokenUpdate === null)
+           {
+               console.log('update shadow failed, operation still in progress');
+           }
+       }
+
+       function log(msg,type){
+           var span = document.createElement('span');
+           if(type=='delta'){
+               span.style.color = 'green';
+           } else if(type=='status'){
+               span.style.color = 'purple';
+           } else if(type=='error'){
+               span.style.color = 'red';
+           } else {
+               span.style.color = 'blue';
+           }
+           span.appendChild(document.createTextNode(msg));
+           document.getElementById("status").appendChild(span);
+           document.getElementById("status").appendChild(document.createElement("br"));
+       }
+
+       function connectIoT() {
+           thingId = document.getElementById('thing-id').value;
+           loginCognitoUser(config.authenticationData, function(credentials) {
+
+               document.getElementById('connect-bt').disabled = true;
+               //
+               // Create the AWS IoT device object.  Note that the credentials must be
+               // initialized with empty strings; when we successfully authenticate to
+               // the Cognito Identity Pool, the credentials will be dynamically updated.
+               //
+               shadows = pro1.AWSIoTData.thingShadow({
+                   //
+                   // Set the AWS region we will operate in.
+                   //
+                   region: config.region,
+                   host: config.host,
+                   //
+                   // Use the clientId created earlier.
+                   //
+                   clientId: 'pro1-' + (Math.floor((Math.random() * 100000) + 1)),
+                   //
+                   // Connect via secure WebSocket
+                   //
+                   protocol: 'wss',
+                   //
+                   // Set the maximum reconnect time to 8 seconds; this is a browser application
+                   // so we don't want to leave the user waiting too long for reconnection after
+                   // re-connecting to the network/re-opening their laptop/etc...
+                   //
+                   maximumReconnectTimeMs: 8000,
+                   baseReconnectTimeMs: 1000,
+                   //
+                   // Enable console debugging information (optional)
+                   //
+                   debug: false,
+                   //
+                   // IMPORTANT: the AWS access key ID, secret key, and sesion token must be
+                   // initialized with empty strings.
+                   //
+                   //accessKeyId: '',
+                   //secretKey: '',
+                   //sessionToken: ''
+                   accessKeyId: credentials.accessKeyId,
+                   secretKey: credentials.secretAccessKey,
+                   sessionToken: credentials.sessionToken
+               });
+
+               //
+               // Update divs whenever we receive delta events from the shadows.
+               //
+               shadows.on('delta', function(thingId, stateObject) {
+                   console.log(thingId, stateObject);
+                   log(JSON.stringify(stateObject.state), 'delta');
+               });
+
+               //
+               // Update divs whenever we receive status events from the shadows.
+               //
+               shadows.on('status', function(rthingId, statusType, clientToken, stateObject) {
+                   console.log(rthingId, statusType, clientToken, stateObject);
+                   if(statusType === 'rejected') {
+                       //
+                       // If an operation is rejected it is likely due to a version conflict;
+                       // request the latest version so that we synchronize with the shadow
+                       // The most notable exception to this is if the thing shadow has not
+                       // yet been created or has been deleted.
+                       //
+                       if(stateObject.code !== 404) {
+                           console.log('resync with thing shadow');
+                           var opClientToken = shadows.get(thingId);
+                           if(opClientToken === null) {
+                               console.log('operation in progress');
+                           }
+                       }
+                       log(JSON.stringify(stateObject.message), 'error');
+                   } else { // statusType === 'accepted'
+                       log(JSON.stringify(stateObject.state), 'status');
+                   }
+               });
+
+               //
+               // Connect handler; update div visibility and fetch latest shadow documents.
+               // Register shadows on the first connect event.
+               //
+               window.shadowConnectHandler = function() {
+                   log("connectted", 'info');
+
+                   //
+                   // We only register our shadows once.
+                   //
+                   if(!shadowsRegistered) {
+                       log("register shadow" + thingId, 'info');
+                       shadows.register(thingId, {
+                           persistentSubscribe: true
+                       });
+                       shadowsRegistered = true;
+                   }
+                   //
+                   // After connecting, wait for a few seconds and then ask for the
+                   // current state of the shadows.
+                   //
+                   setTimeout(function() {
+                       var opClientToken = shadows.get(thingId);
+                       if(opClientToken === null) {
+                           log("operation in progress", 'info');
+                       }
+                   }, 3000);
+               };
+
+               //
+               // Reconnect handler; update div visibility.
+               //
+               window.shadowReconnectHandler = function() {
+                   log("reconnecting", 'info');
+               };
+
+               //
+               // Install connect/reconnect event handlers.
+               //
+               shadows.on('connect', window.shadowConnectHandler);
+               shadows.on('reconnect', window.shadowReconnectHandler);
+
+           });
+       }
+
+       function loginCognitoUser(authenticationData, callback) {
+           const authenticationDetails = new pro1.AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+           const userData = {
+               Username: authenticationData.Username,
+               Pool: new pro1.AmazonCognitoIdentity.CognitoUserPool(config.poolData)
+           };
+           const cognitoUser = new pro1.AmazonCognitoIdentity.CognitoUser(userData);
+           cognitoUser.authenticateUser(authenticationDetails, {
+               onSuccess: (result) => {
+                   cognitoUser.getSession(function(err, result) {
+                       if(result) {
+                           console.log('You are now logged in.');
+
+                           const Logins = {};
+                           Logins[config.Login] = result.getIdToken().getJwtToken();
+                           AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+                               IdentityPoolId: config.IdentityPoolId,
+                               Logins: Logins
+                           });
+                           // call refresh method in order to authenticate user and get new temp credentials
+                           AWS.config.credentials.refresh((error) => {
+                               if(error) {
+                                   console.error(error);
+                               } else {
+                                   console.log('Successfully logged!', AWS.config.credentials.identityId);
+                                   callback(AWS.config.credentials);
+                               }
+                           });
+                       }
+                   });
+               },
+               onFailure: (err) => {
+                   console.log("Error login user", err);
+               }
+           });
+       }
+
+   </script>
+</body>
+</html>
