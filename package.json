@@ -20,6 +20,7 @@
   "dependencies": {
     "aws-iot-device-sdk": "^2.0.1",
     "aws-sdk": "^2.109.0",
-    "webpack": "^2.2.1"
+    "uglify-js": "^3.0.28",
+    "webpack": "^2.7.0"
   }
 }

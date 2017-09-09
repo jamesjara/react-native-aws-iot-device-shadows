@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import AWS from 'aws-sdk/dist/aws-sdk-react-native';
 import {AWSIoTData} from './aws-iot-device-sdk-js-react-native.js';
 
-class AWSIoT_shadows extends Component {
+class AWSIoTShadows extends Component {
     
     constructor(props){
         super(props);
@@ -11,8 +11,8 @@ class AWSIoT_shadows extends Component {
     }
     
     componentDidMount(){
-          
-        this.shadow = AWSIoTData.thingShadow({
+        
+        const config = {
             //
             // Set the AWS region we will operate in.
             //
@@ -32,12 +32,12 @@ class AWSIoT_shadows extends Component {
             // re-connecting to the network/re-opening their laptop/etc...
             //
             minimumConnectionTimeMs: 8000,
-            maximumReconnectTimeMs: 8000,
+            maximumReconnectTimeMs: 1000,
             baseReconnectTimeMs: 1000,
             //
             // Enable console debugging information (optional)
             //
-            debug: true,
+            debug: false,
             //
             // IMPORTANT: the AWS access key ID, secret key, and sesion token must be
             // initialized with empty strings.
@@ -45,11 +45,13 @@ class AWSIoT_shadows extends Component {
             accessKeyId: '',
             secretKey: '',
             sessionToken: ''
-        });
+        };
     
-        if (this.props.thing) {
-            this.addThing(this.props.thing);
+        if (this.props.config) {
+            Object.assign(config, this.props.config);
         }
+        
+        this.shadow = AWSIoTData.thingShadow(config);
         
         if (this.props.onConnect) {
             this.shadow.on('connect', this.props.onConnect);
@@ -70,7 +72,6 @@ class AWSIoT_shadows extends Component {
     
     addThing (thingId, config ) {
         if(this.registry[thingId]){
-            console.log("thing is already registered");
             return;
         }
         config = {
@@ -89,4 +90,4 @@ class AWSIoT_shadows extends Component {
     }
 }
 
-export default AWSIoT_shadows
+export default AWSIoTShadows
