@@ -7,10 +7,9 @@ Allows developers to use the AWS IOT shadow support from a React Native componen
 * [Installation](#install)
 * [Examples](#examples)
 * [API Documentation](#api)
-* [Connection Types](#connections)
-* [Example Programs](#programs)
-* [Browser Applications](#browser)
-* [Troubleshooting](#troubleshooting)
+* [Connection Types](#connections) 
+* [AWS bundle](#bundle)
+* [Debuggin mode](#debug)
 * [Unit Tests](#unittests)
 * [License](#license)
 * [Support](#support)
@@ -198,6 +197,7 @@ This react native component only supports one type of connections to the AWS IoT
 
 * MQTT over WebSocket/TLS with SigV4 authentication using port 443
 
+<a name="debug"></a>
 ##### Debug
 
 The enable debug mode for display logging information just pass a object with debug:true
@@ -231,7 +231,7 @@ directory.
 
 <a name="license"></a>
 ## License
-This SDK is distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0), see LICENSE.txt and NOTICE.txt for more information.
+This react native component is distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0), see LICENSE.txt and NOTICE.txt for more information.
 
 <a name="suport"></a>
 ## Support
