@@ -2,11 +2,12 @@ import React, {Component} from 'react';
 import AWS from 'aws-sdk/dist/aws-sdk-react-native';
 import {AWSIoTData} from './aws-iot-device-sdk-js-react-native.js';
 
-class AWSIoTShadows extends Component {
+class AWSIoTMQTT extends Component {
     
     constructor(props){
         super(props);
-        this.shadow = null;
+        this.type = props.type === 'shadow' ? 'thingShadow' : 'device';
+        this.service = null;
         this.registry = {};
     }
     
@@ -51,38 +52,46 @@ class AWSIoTShadows extends Component {
             Object.assign(config, this.props.config);
         }
         
-        this.shadow = AWSIoTData.thingShadow(config);
+        console.log(this.type);
+        this.service = AWSIoTData[this.type](config);
         
         if (this.props.onConnect) {
-            this.shadow.on('connect', this.props.onConnect);
+            this.service.on('connect', this.props.onConnect);
         }
         
         if (this.props.onReconnect) {
-            this.shadow.on('reconnect', this.props.onReconnect);
+            this.service.on('reconnect', this.props.onReconnect);
         }
         
         if (this.props.onDelta) {
-            this.shadow.on('delta', this.props.onDelta);
+            this.service.on('delta', this.props.onDelta);
         }
     
         if (this.props.onStatus) {
-            this.shadow.on('status', this.props.onStatus);
+            this.service.on('status', this.props.onStatus);
         }
     }
     
-    addThing (thingId, config ) {
+    addThing (thingId, extraConfig ) {
+        if(this.type==='device'){
+            console.warn('addthing is only supported for shadows implementations');
+            return;
+        }
         if(this.registry[thingId]){
             return;
         }
-        config = {
+        let config = {
             persistentSubscribe: true
         };
+        if(extraConfig){
+            Object.assign(config, extraConfig);
+        }
         this.registry[thingId] = config;
         let callback = null;
         if (this.props.onThingConnected) {
             callback = this.props.onThingConnected.bind(null, thingId ) ;
         }
-        this.shadow.register(thingId, config, callback );
+        this.service.register(thingId, config, callback );
     }
     
     render (){
@@ -90,4 +99,4 @@ class AWSIoTShadows extends Component {
     }
 }
 
-export default AWSIoTShadows
+export default AWSIoTMQTT

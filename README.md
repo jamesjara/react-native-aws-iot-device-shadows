@@ -9,7 +9,7 @@ Allows developers to use the AWS IOT shadow support from a React Native componen
 * [API Documentation](#api)
 * [Connection Types](#connections) 
 * [AWS bundle](#bundle)
-* [Debuggin mode](#debug)
+* [Debugging mode](#debug)
 * [Unit Tests](#unittests)
 * [License](#license)
 * [Support](#support)
@@ -17,18 +17,21 @@ Allows developers to use the AWS IOT shadow support from a React Native componen
 <a name="overview"></a>
 ## Overview
 This document provides instructions on how to install and configure the AWS 
-IoT Shadow React Native and includes examples.
+IoT device/Shadow in React Native.
 
 ### AWS SDK Dependency
-This package is built on top of the AWS SDK Dependency [aws-sdk.js](https://github.com/aws/aws-iot-device-sdk-js) which provides two classes: 'device'
-and 'thingShadow'.  The 'device' class wraps [mqtt.js](https://github.com/mqttjs/MQTT.js/blob/master/README.md) to provide a
-secure connection to the AWS IoT platform and expose the [mqtt.js](https://github.com/mqttjs/MQTT.js/blob/master/README.md) interfaces upward.  It provides features to simplify handling of intermittent connections, including progressive backoff retries, automatic re-subscription upon connection, and queued offline publishing with configurable drain rate.
-
-### Thing Shadows
+This package is built on top of the AWS SDK [aws-sdk.js](https://github.com/aws/aws-iot-device-sdk-js) which provides two classes: 'device'
+and 'thingShadow'. 
+ 
+#### Thing Shadows
 The 'thingShadow' class implements additional functionality for accessing Thing Shadows via the AWS IoT
 API; the thingShadow class allows devices to update, be notified of changes to,
 get the current state of, or delete Thing Shadows from AWS IoT.  Thing
 Shadows allow applications and devices to synchronize their state on the AWS IoT platform. 
+
+#### Device
+The 'device' class wraps [mqtt.js](https://github.com/mqttjs/MQTT.js/blob/master/README.md) to provide a
+secure connection to the AWS IoT platform and expose the [mqtt.js](https://github.com/mqttjs/MQTT.js/blob/master/README.md) interfaces upward.  It provides features to simplify handling of intermittent connections, including progressive backoff retries, automatic re-subscription upon connection, and queued offline publishing with configurable drain rate.
 
 <a name="install"></a>
 ## Installation
@@ -36,7 +39,7 @@ Shadows allow applications and devices to synchronize their state on the AWS IoT
 Installing with npm:
 
 ```sh
-npm install aws-iot-device-sdk-js-react-native
+npm install react-native-aws-iot-device-shadows
 ```
 
 <a name="examples"></a>
@@ -44,8 +47,9 @@ npm install aws-iot-device-sdk-js-react-native
 
 ### MQTT React Native IoT Shadow Class
 ```js
-<AWSIoTShadows
-    ref={(ref) => { this.AWSIoTShadows = ref; }}
+<AWSIoTMQTT
+    ref={(ref) => { this.AWSIoTMQTT = ref; }}
+    type="shadow"
     region="us-west-2"
     host="asdasd.iot.aws.com"
     onReconnect={() => this.onConnect()}
@@ -57,130 +61,29 @@ npm install aws-iot-device-sdk-js-react-native
 />
 ```
 
-### Thing Shadow React Native Full Example Class
+### MQTT React Native IoT device Class
 ```js
-import React, { Component } from 'react'; 
-import AWSIoTShadows from 'react-native-aws-iot-device-shadows';
-
-class MQTTAWSIOTShadows extends Component {
-
-    constructor(props) {
-        super(props);
-        this.state = {
-            device: {
-              deviceId: "smartDevice1",
-              temp: 80
-            }
-        };
-        this.AWSIoTShadows = null;
-    }
-
-    componentDidMount() {
-        // trigger STS credentials from Cognito Pool
-        this.AWSIoTShadows.shadow.updateWebSocketCredentials(
-                accessKeyId,
-                secretAccessKey,
-                sessionToken
-       );
-    } 
-
-    onConnect() {
-        this.AWSIoTShadows.addThing(this.device.deviceId);
-    }
-
-    onDelta(thingId, stateObject) {
-        if (stateObject.state.device && stateObject.state.device.temp) {
-            this.updateState(thingId, {
-                temp: stateObject.state.temp
-            });
-        }
-    }
-
-    onStatus(thingId, statusType, clientToken, stateObject) {
-        if (statusType === 'rejected') {
-            //
-            // If an operation is rejected it is likely due to a version conflict;
-            // request the latest version so that we synchronize with the shadow
-            // The most notable exception to this is if the thing shadow has not
-            // yet been created or has been deleted.
-            // if gets still in progress client token of the will be null
-            //
-            if (stateObject.code !== 404) {
-                this.AWSIoTShadows.shadow.get(thingId);
-            }
-        } else if (statusType === 'accepted') {
-            if (stateObject.state && stateObject.state.desired && stateObject.state.desired.temp) {
-                this.updateState(thingId, {
-                    temp: stateObject.state.desired.temp
-                });
-            }
-        }
-    }
-
-    onThingConnected(thingId) {
-        this.AWSIoTShadows.shadow.get(thingId);
-    }
-
-    updateState(thingId, sensors) {
-        Object.assign(this.device, sensors);
-
-        this.setState({
-            device
-        });
-    }
-
-    updateShadow(key) {
-        const current = this.data.device;
-
-        const update = {
-            [key]: ((Math.floor(Math.random() * (99 - 1)) + 1))
-        };
-
-        this.AWSIoTShadows.shadow.update(current.deviceId, {
-            state: {
-                desired: update
-            }
-        });
-    }
-
-    render() {
-        return (
-            <Container>
-                <AWSIoTShadows
-                    ref={(ref) => { this.AWSIoTShadows = ref; }}
-                    region="us-west-2"
-                    host="asdasd.iot.aws.com"
-                    onConnect={() => this.onConnect()}
-                    onDelta={(thingId, stateObject) => this.onDelta(thingId, stateObject)}
-                    onStatus={(thingId, statusType, clientToken, stateObject) =>
-                        this.onStatus(thingId, statusType, clientToken, stateObject)}
-                    onThingConnected={(thingId) => { this.onThingConnected(thingId); }}
-                />
-                <Text>{this.state.device.temp}</Text>
-                <Button
-                    onPress={() => this.updateShadow('temp')}
-                >
-                  <Text>Update Shadow Randomly</Text>
-                </Button>
-            </Container>
-        );
-    }
-}
-
-export default MQTTAWSIOTShadows;
+<AWSIoTMQTT
+    ref={(ref) => { this.AWSIoTMQTT = ref; }}
+    type="shadows"
+    region="us-west-2"
+    host="asdasd.iot.aws.com"
+    onReconnect={() => this.onConnect()}
+    onConnect={() => this.onConnect()}
+    xxxxxxxxx
+/>
 ```
     
-<a name="AWSIoTShadows"></a>
-### AWSIoTShadows
+<a name="AWSIoTMQTT"></a>
+## AWSIoTMQTT
 
-Returns a wrapper for the [awsIot.thingShadow()](https://github.com/aws/aws-iot-device-sdk-js#client) 
-class, configured for a WSS connection with the AWS IoT platform and with 
-arguments as specified in `options`.  The AWSIoT-specific arguments are as 
-follows:
+Returns a React Native component whichs wraps xxxxxxxx
+
 
 <a name="api"></a>
-### API Documentation
+## API Documentation
 
+  * `type`: use 'device' for device type and 'shadows' for ShadowThing
   * `host`: the AWS IoT endpoint you will use to connect
   * `region`: the AWS IoT region you will use to connect
   * `config`: extra configuration for the thingShadow
@@ -197,13 +100,14 @@ This react native component only supports one type of connections to the AWS IoT
 
 * MQTT over WebSocket/TLS with SigV4 authentication using port 443
 
+
 <a name="debug"></a>
-##### Debug
+## Debug
 
 The enable debug mode for display logging information just pass a object with debug:true
 
 ```js
-<AWSIoTShadows
+<AWSIoTMQTT
     config={debug:true}
     ...
 />
@@ -211,10 +115,10 @@ The enable debug mode for display logging information just pass a object with de
 
 <a name="bundle"></a>
 ## Re-Creating the bundle with webpack
-This IOT JS SDK is packaged with[webpack](https://webpack.js.org/), because currently there is not support for react native, it is already bundle for you using the last version.
+This IOT JS SDK is packaged with[webpack](https://webpack.js.org/), because currently there is not official support for AWS IOT react native. This  is already bundle it for you using the last version.
 
 ```sh
-./node_modules/.bin/webpack --config webpack.config.js
+npm run build
 ```
 
 <a name="unittests"></a>

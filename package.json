@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jamesjara/aws-iot-device-sdk-js-react-native.git"
+    "url": "git+https://github.com/jamesjara/react-native-aws-iot-device-shadows.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "jamesjara",
+  "license": "Apache",
   "bugs": {
-    "url": "https://github.com/jamesjara/aws-iot-device-sdk-js-react-native/issues"
+    "url": "https://github.com/jamesjara/react-native-aws-iot-device-shadows/issues"
   },
-  "homepage": "https://github.com/jamesjara/aws-iot-device-sdk-js-react-native#readme",
+  "homepage": "https://github.com/jamesjara/react-native-aws-iot-device-shadows#readme",
   "dependencies": {
     "aws-iot-device-sdk": "^2.0.1",
     "aws-sdk": "^2.109.0",
