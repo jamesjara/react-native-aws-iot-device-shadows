@@ -20,10 +20,6 @@ class AWSIoTMQTT extends Component {
             region: this.props.region,
             host: this.props.host,
             //
-            // Use the clientId created earlier.
-            //
-            clientId: 'pro1-' + (Math.floor((Math.random() * 100000) + 1)),
-            //
             // Connect via secure WebSocket
             //
             protocol: 'wss',
@@ -32,9 +28,7 @@ class AWSIoTMQTT extends Component {
             // so we don't want to leave the user waiting too long for reconnection after
             // re-connecting to the network/re-opening their laptop/etc...
             //
-            minimumConnectionTimeMs: 8000,
-            maximumReconnectTimeMs: 1000,
-            baseReconnectTimeMs: 1000,
+            maximumReconnectTimeMs: 8000,
             //
             // Enable console debugging information (optional)
             //
@@ -70,6 +64,14 @@ class AWSIoTMQTT extends Component {
         if (this.props.onStatus) {
             this.service.on('status', this.props.onStatus);
         }
+    
+        if (this.props.onClose) {
+            this.service.on('close', this.props.onClose);
+        }
+    
+        if (this.props.onOffline) {
+            this.service.on('offline', this.props.onOffline);
+        }
     }
     
     addThing (thingId, extraConfig ) {
@@ -92,6 +94,10 @@ class AWSIoTMQTT extends Component {
             callback = this.props.onThingConnected.bind(null, thingId ) ;
         }
         this.service.register(thingId, config, callback );
+        this.service.on('close', () => {
+            delete this.registry[thingId];
+            this.service.unregister(thingId);
+        });
     }
     
     render (){
