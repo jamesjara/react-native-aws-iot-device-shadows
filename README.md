@@ -65,12 +65,11 @@ npm install react-native-aws-iot-device-shadows
 ```js
 <AWSIoTMQTT
     ref={(ref) => { this.AWSIoTMQTT = ref; }}
-    type="shadows"
+    type="device"
     region="us-west-2"
     host="asdasd.iot.aws.com"
     onReconnect={() => this.onConnect()}
-    onConnect={() => this.onConnect()}
-    xxxxxxxxx
+    onConnect={() => this.onConnect()} 
 />
 ```
     
