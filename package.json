@@ -18,9 +18,14 @@
   },
   "homepage": "https://github.com/jamesjara/react-native-aws-iot-device-shadows#readme",
   "dependencies": {
-    "aws-iot-device-sdk": "^2.0.1",
-    "aws-sdk": "^2.109.0",
+    "aws-iot-device-sdk": "*",
+    "aws-sdk": "*",
     "uglify-js": "^3.0.28",
     "webpack": "^2.7.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.1",
+    "eslint": "^4.18.0",
+    "eslint-config-google": "^0.9.1"
   }
 }
