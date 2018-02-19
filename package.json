@@ -1,6 +1,6 @@
 {
   "name": "react-native-aws-iot-device-shadows",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "React Native Component for connecting to AWS IoT from a device using SDK JavaScript bundle",
   "main": "index.js",
   "scripts": {
